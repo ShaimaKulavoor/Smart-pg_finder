@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Smart PG Finder - Complete Setup Guide
 
 This is a full-stack PG (Paying Guest) recommendation web application with:
@@ -431,3 +432,22 @@ This project is for educational purposes. Feel free to modify and use as needed.
 ---
 
 **Happy PG Hunting! 🏠✨**
+=======
+# PG Recommendation Engine
+
+This project recommends PG accommodations based on user preferences such as city, budget, and tenant type.
+
+## Features
+- User input-based filtering
+- Budget-based recommendations
+- Tenant type matching
+
+## Tech Stack
+- Python
+- Pandas
+- Jupyter Notebook
+
+## Future Scope
+- ML-based recommendation system
+- Web app interface.
+>>>>>>> d885247f8fdc7785feacedc499474e5bcf0a34c0
