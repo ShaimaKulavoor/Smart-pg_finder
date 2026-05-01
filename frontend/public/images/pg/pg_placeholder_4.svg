@@ -1,0 +1,12 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#43e97b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#38f9d7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#grad4)"/>
+  <polygon points="200,50 280,130 220,130 220,200 180,200 180,130 120,130" fill="#ffffff" opacity="0.25"/>
+  <circle cx="200" cy="240" r="30" fill="#ffffff" opacity="0.2"/>
+  <text x="200" y="270" font-size="20" fill="white" text-anchor="middle" font-family="Arial">Spacious Room</text>
+</svg>
