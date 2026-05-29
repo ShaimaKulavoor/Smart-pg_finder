@@ -4,11 +4,16 @@ import { recommendationAPI } from '../api/api';
 
 export const HomePage = () => {
   const navigate = useNavigate();
+  
+  // Fallback cities list in case API fails
+  const fallbackCities = ['Bangalore', 'Chennai', 'Delhi', 'Hyderabad', 'Kolkata', 'Mumbai'];
+  
+  const [cities, setCities] = useState(fallbackCities);
   const [city, setCity] = useState('Bangalore');
   const [budget, setBudget] = useState(15000);
   const [tenantType, setTenantType] = useState('Any');
-  const [cities, setCities] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [moveIn, setMoveIn] = useState('');
   const [moveOut, setMoveOut] = useState('');
   const [guests, setGuests] = useState(1);
@@ -20,42 +25,71 @@ export const HomePage = () => {
   const fetchCities = async () => {
     try {
       const response = await recommendationAPI.getCities();
-      if (response.data.status === 'success') {
+      if (response.data && response.data.cities && Array.isArray(response.data.cities)) {
         setCities(response.data.cities);
+        // Set first city as default if available
+        if (response.data.cities.length > 0 && !response.data.cities.includes('Bangalore')) {
+          setCity(response.data.cities[0]);
+        }
       }
     } catch (err) {
       console.error('Error fetching cities:', err);
+      // Fallback cities already set in state
     }
   };
 
   const handleGetRecommendations = async (e) => {
     e.preventDefault();
+    
+    // Validate form
+    if (!city) {
+      setError('Please select a city');
+      return;
+    }
+
     setLoading(true);
+    setError('');
 
     try {
+      // Don't pass tenant_type if it's 'Any' - let backend return all
+      const queryTenantType = tenantType && tenantType !== 'Any' ? tenantType : undefined;
+      
       const response = await recommendationAPI.getRecommendations(
         city,
         budget,
-        tenantType !== 'Any' ? tenantType : null,
+        queryTenantType,
         null,
         10
       );
 
       if (response.data.status === 'success') {
-        // Navigate to results page with data
-        navigate('/results', {
-          state: {
-            recommendations: response.data.recommendations,
-            filters: {
-              city,
-              budget,
-              tenantType,
+        if (response.data.recommendations && response.data.recommendations.length > 0) {
+          // Navigate to results page with data
+          navigate('/results', {
+            state: {
+              recommendations: response.data.recommendations,
+              filters: {
+                city,
+                budget,
+                tenantType,
+                moveIn,
+                moveOut,
+                guests,
+              },
             },
-          },
-        });
+          });
+        } else {
+          setError('No PGs found matching your criteria. Try adjusting your filters.');
+        }
+      } else {
+        setError('No recommendations found. Try adjusting your filters.');
       }
     } catch (err) {
       console.error('Error fetching recommendations:', err);
+      setError(
+        err.response?.data?.message || 
+        'Failed to fetch recommendations. Please check the backend is running.'
+      );
     } finally {
       setLoading(false);
     }
@@ -78,6 +112,13 @@ export const HomePage = () => {
       <div className="max-w-6xl mx-auto px-4 py-12">
         <div className="bg-white rounded-lg shadow-2xl p-8">
           <form onSubmit={handleGetRecommendations} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 text-red-700">
+                <p className="font-semibold">⚠️ {error}</p>
+              </div>
+            )}
+
             {/* Main Search Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* City Selector */}
@@ -86,14 +127,17 @@ export const HomePage = () => {
                 <select
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white"
                 >
-                  <option value="">Select city</option>
-                  {cities.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
+                  {cities && cities.length > 0 ? (
+                    cities.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No cities available</option>
+                  )}
                 </select>
               </div>
 

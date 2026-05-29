@@ -5,9 +5,48 @@ Content-based filtering using TF-IDF and Cosine Similarity
 
 import pandas as pd
 import numpy as np
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import os
+
+# Simple cosine similarity calculation without sklearn
+def cosine_similarity_simple(matrix1, matrix2=None):
+    """Calculate cosine similarity between vectors"""
+    if matrix2 is None:
+        matrix2 = matrix1
+    
+    # Normalize vectors
+    norm1 = np.sqrt((matrix1 * matrix1).sum(axis=1, keepdims=True))
+    norm2 = np.sqrt((matrix2 * matrix2).sum(axis=1, keepdims=True))
+    
+    norm1[norm1 == 0] = 1
+    norm2[norm2 == 0] = 1
+    
+    normalized1 = matrix1 / norm1
+    normalized2 = matrix2 / norm2
+    
+    return np.dot(normalized1, normalized2.T)
+
+class SimpleVectorizer:
+    """Simple text vectorizer without sklearn"""
+    def __init__(self):
+        self.vocab = {}
+        self.idf = {}
+    
+    def fit_transform(self, texts):
+        """Convert texts to feature matrix"""
+        # Build vocabulary
+        for text in texts:
+            for word in str(text).lower().split():
+                if word not in self.vocab:
+                    self.vocab[word] = len(self.vocab)
+        
+        # Create feature matrix
+        matrix = np.zeros((len(texts), len(self.vocab)))
+        for i, text in enumerate(texts):
+            for word in str(text).lower().split():
+                if word in self.vocab:
+                    matrix[i, self.vocab[word]] += 1
+        
+        return matrix
 
 class PGRecommender:
     """Smart PG Recommendation Engine"""
@@ -21,7 +60,7 @@ class PGRecommender:
         """
         self.df = df
         self.similarity_matrix = None
-        self.vectorizer = CountVectorizer()
+        self.vectorizer = SimpleVectorizer()
         self.feature_matrix = None
         
         if df is not None and not df.empty:
@@ -41,10 +80,10 @@ class PGRecommender:
         )
         
         # Transform text to feature matrix
-        self.feature_matrix = self.vectorizer.fit_transform(self.df['tags'])
+        self.feature_matrix = self.vectorizer.fit_transform(self.df['tags'].values)
         
         # Calculate cosine similarity
-        self.similarity_matrix = cosine_similarity(self.feature_matrix)
+        self.similarity_matrix = cosine_similarity_simple(self.feature_matrix)
     
     def rent_category(self, price):
         """
@@ -204,6 +243,23 @@ def get_recommendations(city=None, max_budget=None, tenant_type=None, bhk=None, 
         List of dictionaries with PG recommendations
     """
     global recommender
+    
+    # Lazy initialization if not already initialized
+    if recommender is None:
+        try:
+            from app import app, db
+            from models import PG
+            
+            with app.app_context():
+                pgs = db.session.query(PG).all()
+                if pgs:
+                    pg_data = [pg.to_dict() for pg in pgs]
+                    df = pd.DataFrame(pg_data)
+                    recommender = PGRecommender(df)
+                    print(f"✓ ML Recommender lazily initialized with {len(df)} PGs")
+        except Exception as e:
+            print(f"⚠️  Error lazily initializing ML recommender: {str(e)}")
+            return []
     
     if recommender is None:
         return []

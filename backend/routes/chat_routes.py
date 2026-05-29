@@ -118,6 +118,7 @@ class ChatbotEngine:
     
     def extract_entities(self, message):
         """Extract entities like budget, city, bhk from message"""
+        from difflib import get_close_matches
         entities = {}
         message_lower = message.lower()
         
@@ -129,12 +130,22 @@ class ChatbotEngine:
                 amount *= 1000
             entities['max_budget'] = amount
         
-        # Extract city - look for common Indian cities
+        # Extract city - look for common Indian cities with fuzzy matching
         cities = ['bangalore', 'mumbai', 'delhi', 'pune', 'chennai', 'kolkata', 
                  'hyderabad', 'noida', 'gurgaon', 'ahmedabad', 'jaipur']
-        for city in cities:
-            if city in message_lower:
-                entities['city'] = city.capitalize()
+        
+        # Extract potential city words from message
+        words = message_lower.split()
+        for word in words:
+            # Try exact match first
+            if word in cities:
+                entities['city'] = word.capitalize()
+                break
+            # Try fuzzy matching for typos
+            matches = get_close_matches(word, cities, n=1, cutoff=0.6)
+            if matches:
+                entities['city'] = matches[0].capitalize()
+                break
         
         # Extract BHK
         bhk_match = re.search(r'(\d)\s*bhk', message_lower)
@@ -170,39 +181,37 @@ You can also combine filters: "Show me 2BHK furnished PGs under 15k in Bangalore
 How can I help you today?'''
             }
         
-        # Try to use Groq API for intelligent response
-        groq_response = None
-        if not ('help' in intents):
-            context = f"Found {len(recommendations) if recommendations else 0} matching PGs"
-            groq_response = call_groq_api(message, context)
+        # If we have recommendations, return them
+        if recommendations and len(recommendations) > 0:
+            msg = f"✅ Found {len(recommendations)} matching PGs! Here are the best options:"
+            return {
+                'type': 'recommendations',
+                'message': msg,
+                'recommendations': recommendations[:5],
+                'filters_applied': entities
+            }
         
-        if recommendations:
-            if len(recommendations) > 0:
-                # Use Groq response or fallback
-                msg = groq_response if groq_response else f"Found {len(recommendations)} matching PGs! Here are the best options:"
-                return {
-                    'type': 'recommendations',
-                    'message': msg,
-                    'recommendations': recommendations[:5]
-                }
-            else:
-                msg = groq_response if groq_response else "Sorry, I couldn't find any PGs matching your criteria. Try adjusting your filters or try a different location."
-                return {
-                    'type': 'no_results',
-                    'message': msg,
-                    'suggestions': [
-                        'Try a higher budget',
-                        'Try a different city',
-                        'Try "Show all PGs"'
-                    ]
-                }
+        # If filters were provided but no results
+        if entities and any(v for v in entities.values()):
+            msg = f"❌ Sorry, I couldn't find any PGs matching your criteria: {self._format_filters(entities)}. Try adjusting your filters or try a different location."
+            return {
+                'type': 'no_results',
+                'message': msg,
+                'filters_applied': entities,
+                'suggestions': [
+                    'Try a higher budget',
+                    'Try a different city',
+                    'Try "Show all PGs"'
+                ]
+            }
         
-        # Default response using Groq or fallback
+        # Try to use Groq API for general question
+        groq_response = call_groq_api(message)
+        
         if groq_response:
             return {
                 'type': 'info',
-                'message': groq_response,
-                'filters': entities
+                'message': groq_response
             }
         else:
             return {

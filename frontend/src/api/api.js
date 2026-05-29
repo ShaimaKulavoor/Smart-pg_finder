@@ -59,16 +59,16 @@ export const authAPI = {
 
 // Recommendation APIs
 export const recommendationAPI = {
-  getRecommendations: (city, maxBudget, tenantType, bhk, topN = 5) =>
-    apiClient.get('/recommend', {
-      params: {
-        city,
-        max_budget: maxBudget,
-        tenant_type: tenantType,
-        bhk,
-        top_n: topN,
-      },
-    }),
+  getRecommendations: (city, maxBudget, tenantType, bhk, topN = 5) => {
+    const params = {
+      city,
+      ...(maxBudget !== undefined && { max_budget: maxBudget }),
+      ...(tenantType !== undefined && tenantType !== null && { tenant_type: tenantType }),
+      ...(bhk !== undefined && bhk !== null && { bhk }),
+      ...(topN && { top_n: topN }),
+    };
+    return apiClient.get('/recommend', { params });
+  },
   
   getPGDetails: (pgId) =>
     apiClient.get(`/pg/${pgId}`),

@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Smart PG Finder - Complete Setup Guide
 
 This is a full-stack PG (Paying Guest) recommendation web application with:
@@ -450,4 +450,4 @@ This project recommends PG accommodations based on user preferences such as city
 ## Future Scope
 - ML-based recommendation system
 - Web app interface.
->>>>>>> d885247f8fdc7785feacedc499474e5bcf0a34c0
+

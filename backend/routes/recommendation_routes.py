@@ -252,9 +252,10 @@ def filter_pgs():
 def get_cities():
     """Get list of all cities with PG listings"""
     try:
-        db, _, _ = get_db_and_recommender()
+        from app import db
         from models import PG
         
+        # Query using the current app's db session
         cities = db.session.query(PG.city).distinct().all()
         cities = [city[0] for city in cities if city[0]]
         
@@ -264,6 +265,9 @@ def get_cities():
         }), 200
     
     except Exception as e:
+        import traceback
+        print(f"Cities endpoint error: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({
             'status': 'error',
             'message': f'Error fetching cities: {str(e)}'
